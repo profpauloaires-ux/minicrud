@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>MINI CRUD PREMIUM EDITION - FIREBASE</title>
+</head>
+<body>
+
+    <h2>LISTA DE USUÁRIOS (NUVEM)</h2>
+
+    <!-- Campo invisível para saber se estamos editando (guarda a chave do Firebase) -->
+    <input type="hidden" id="idNome">
+
+    <!-- Inputs do sistema -->
+    <input type="text" id="nome" placeholder="Digite o nome do usuário...">
+    <button onclick="salvar()">Salvar</button>
+    <br><br>
+
+    <!-- BARRA DE PESQUISA -->
+    <input type="text" id="pesquisa" placeholder="Pesquisar usuário..." oninput="pesquisar()">
+
+    <!-- BOTÃO LIMPAR TUDO -->
+    <button onclick="limparTudo()" style="background-color: lightcoral;">Limpar Tudo</button>
+
+    <!-- Lista que vai aparecer na tela -->
+    <ul id="lista"></ul>
+
+    <!-- 1. IMPORTANDO O FIREBASE (VERSÃO COMPATÍVEL COM ONCLICK E REF) -->
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
+
+    <script>
+        // 2. CONFIGURAÇÃO DO SEU BANCO DE DADOS
+        const firebaseConfig = {
+            apiKey: "AIzaSyCcEogcWrfRr0FLTNXPehLQa2-JT0_8WhM",
+            authDomain: "minicrud-1c0c9.firebaseapp.com",
+            databaseURL: "https://minicrud-1c0c9-default-rtdb.firebaseio.com",
+            projectId: "minicrud-1c0c9",
+            storageBucket: "minicrud-1c0c9.firebasestorage.app",
+            messagingSenderId: "663844691248",
+            appId: "1:663844691248:web:532baca83ccb17860ebcf5"
+        };
+
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Variável local para busca e filtros
+        let nomesLocais = {};
+
+        // 3. PASSO DE LEITURA AUTOMÁTICA
+        db.ref("usuarios").on("value", (snapshot) => {
+            nomesLocais = snapshot.val() || {};
+            desenharTela(nomesLocais);
+        });
+
+        // PASSO 1 - CRIANDO OU ATUALIZANDO NO BANCO
+        function salvar() {
+            let input = document.getElementById("nome");
+            let id = document.getElementById("idNome").value;
+
+            if (input.value.trim() === "") return alert("Digite alguma coisa, seu bizonho!");
+
+            if (id === "") {
+                // Criar novo registro
+                db.ref("usuarios").push({ nome: input.value });
+            } else {
+                // Atualizar registro existente
+                db.ref("usuarios/" + id).update({ nome: input.value });
+                document.getElementById("idNome").value = "";
+            }
+            input.value = "";
+        }
+
+        // PASSO 2 - EXIBINDO OS DADOS DO FIREBASE
+        function desenharTela(dadosExibir) {
+            let itemsHtml = "";
+            
+            Object.keys(dadosExibir).forEach((idUnico) => {
+                let usuario = dadosExibir[idUnico];
+                itemsHtml += `
+                    <li>
+                        ${usuario.nome} 
+                        <button onclick="editar('${idUnico}')">Editar</button>
+                        <button onclick="deletar('${idUnico}')">Excluir</button>
+                    </li>
+                `;
+            });
+            document.getElementById("lista").innerHTML = itemsHtml;
+        }
+
+        // PASSO 3 - PREPARANDO A EDIÇÃO
+        function editar(idUnico) {
+            document.getElementById("nome").value = nomesLocais[idUnico].nome;
+            document.getElementById("idNome").value = idUnico;
+        }
+
+        // PASSO 4 - DELETANDO DO BANCO ONLINE
+        function deletar(idUnico) {
+            if(confirm("Deseja mesmo excluir este usuário?")) {
+                db.ref("usuarios/" + idUnico).remove();
+            }
+        }
+
+        // PASSO 5 - LIMPAR TODA A LISTA NA NUVEM
+        function limparTudo() {
+            let resposta = confirm("Tem certeza que deseja apagar tudo do banco de dados, seu bizonho?");
+            if (resposta === true) {
+                db.ref("usuarios").remove();
+                document.getElementById("pesquisa").value = "";
+            }
+        }
+
+        // PASSO 6 - PESQUISAR REGISTROS
+        function pesquisar() {
+            let termo = document.getElementById("pesquisa").value.toLowerCase();
+            let filtrados = {};
+
+            Object.keys(nomesLocais).forEach((idUnico) => {
+                if (nomesLocais[idUnico].nome.toLowerCase().includes(termo)) {
+                    filtrados[idUnico] = nomesLocais[idUnico];
+                }
+            });
+            desenharTela(filtrados);
+        }
+    </script>
+</body>
+</html>
