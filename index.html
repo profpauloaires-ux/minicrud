@@ -3,156 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <title>MINI CRUD PREMIUM - FIREBASE</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        button { cursor: pointer; margin-left: 5px; }
-        ul { list-style-type: none; padding: 0; }
-        li { margin: 5px 0; padding: 5px; border-bottom: 1px solid #eee; display: flex; align-items: center; }
-        span { min-width: 200px; display: inline-block; }
-    </style>
 </head>
 <body>
 
     <h2>LISTA DE USUÁRIOS (NUVEM)</h2>
 
-    <!-- Campo oculto para guardar o ID quando formos editar -->
-    <input type="hidden" id="idNome" value="">
+    <input type="hidden" id="idNome">
 
-    <!-- Campo para digitar o nome -->
-    <input type="text" id="nome" placeholder="Digite o nome do usuário...">
-    <button onclick="executarSalvar()">Salvar</button>
+    <input type="text" id="nome"
+        placeholder="Digite o nome do usuário...">
+
+    <button onclick="salvar()">Salvar</button>
 
     <br><br>
 
-    <!-- Campo de pesquisa -->
-    <input type="text" id="pesquisa" placeholder="Pesquisar usuário..." oninput="executarPesquisa()">
+    <input type="text" id="pesquisa"
+        placeholder="Pesquisar usuário..."
+        oninput="pesquisar()">
 
-    <button onclick="executarLimparTudo()" style="background-color: lightcoral; color: white; border: none; padding: 4px 8px;">
+    <button onclick="limparTudo()"
+        style="background-color: lightcoral;">
         Limpar Tudo
     </button>
 
-    <!-- Onde a lista vai aparecer -->
     <ul id="lista"></ul>
 
-    <!-- Firebase versão 8 (Legada, estável) -->
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
+    <!-- Firebase versão 8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-        // 1. Configuração do Firebase
-        const firebaseConfig = {
-        apiKey: "AIzaSyCcEogcWrfRr0FLTNXPehLQa2-JT0_8WhM",
-        authDomain: "minicrud-1c0c9.firebaseapp.com",
-        databaseURL: "https://minicrud-1c0c9-default-rtdb.firebaseio.com",
-        projectId: "minicrud-1c0c9",
-        storageBucket: "minicrud-1c0c9.firebasestorage.app",
-        messagingSenderId: "663844691248",
-        appId: "1:663844691248:web:532baca83ccb17860ebcf5"
-};
 
-        // 2. Inicialização segura
+        const firebaseConfig = {
+            apiKey: "AIzaSyCcEogcWrfRr0FLTNXPehLQa2-JT0_8WhM",
+            authDomain: "minicrud-1c0c9.firebaseapp.com",
+            databaseURL: "https://minicrud-1c0c9-default-rtdb.firebaseio.com",
+            projectId: "minicrud-1c0c9",
+            storageBucket: "minicrud-1c0c9.firebasestorage.app",
+            messagingSenderId: "663844691248",
+            appId: "1:663844691248:web:532baca83ccb17860ebcf5"
+        };
+
         firebase.initializeApp(firebaseConfig);
+
         const db = firebase.database();
 
-        // Variável global para espelhar os dados do banco
         let nomesLocais = {};
 
-        // 3. Ouvinte em tempo real (Roda automático sempre que o banco muda)
-        db.ref("usuarios").on("value", function(snapshot) {
+        // LEITURA AUTOMÁTICA
+        db.ref("usuarios").on("value", (snapshot) => {
+
             nomesLocais = snapshot.val() || {};
-            executarPesquisa(); // Atualiza a lista na tela imediatamente
-        }, function(erro) {
-            console.error("Erro no Firebase:", erro);
-            alert("Erro de permissão ou conexão com o Firebase!");
+
+            pesquisar();
+
+        }, (erro) => {
+            console.error("Erro ao carregar dados:", erro);
+            alert("Erro ao carregar os usuários!");
         });
 
-        // 4. FUNÇÃO SALVAR (Cria ou Atualiza)
-        function executarSalvar() {
-            const inputNome = document.getElementById("nome");
-            const inputId = document.getElementById("idNome");
-            
-            const nomeValor = inputNome.value.trim();
-            const idValor = inputId.value;
+        // SALVAR
+        function salvar() {
 
-            if (nomeValor === "") {
-                alert("Por favor, digite um nome!");
+            let input = document.getElementById("nome");
+
+            let id = document.getElementById("idNome").value;
+
+            let nome = input.value.trim();
+
+            if (nome === "") {
+                alert("Digite um nome!");
                 return;
             }
 
-            if (idValor === "") {
-                // Novo registro (CREATE)
-                db.ref("usuarios").push({ nome: nomeValor })
-                    .then(function() {
-                        inputNome.value = "";
-                    })
-                    .catch(function(error) {
-                        alert("Erro ao salvar: " + error.message);
-                    });
+            let operacao;
+
+            if (id === "") {
+
+                operacao = db.ref("usuarios").push({
+                    nome: nome
+                });
+
             } else {
-                // Atualizar existente (UPDATE)
-                db.ref("usuarios").child(idValor).set({ nome: nomeValor })
-                    .then(function() {
-                        inputNome.value = "";
-                        inputId.value = ""; // Reseta o formulário
-                    })
-                    .catch(function(error) {
-                        alert("Erro ao atualizar: " + error.message);
-                    });
+
+                operacao = db.ref("usuarios/" + id).update({
+                    nome: nome
+                });
+
             }
-        }
 
-        // 5. FUNÇÃO FILTRAR E MONTAR A LISTA NA TELA
-        function ejecutarPesquisa() { // Mapeada para o oninput do HTML alternativo
-            executarPesquisa();
-        }
+            operacao.then(() => {
 
-        function executarPesquisa() {
-            const filtro = document.getElementById("pesquisa").value.toLowerCase();
-            const listaUl = document.getElementById("lista");
-            listaUl.innerHTML = ""; // Limpa o HTML da lista anterior
+                input.value = "";
 
-            // Transforma o objeto do Firebase em chaves para varrer a estrutura
-            Object.keys(nomesLocais).forEach(function(id) {
-                const usuario = nomesLocais[id];
-                
-                // Se o nome incluir o que está digitado na busca (ou se a busca estiver vazia)
-                if (usuario.nome && usuario.nome.toLowerCase().indexOf(filtro) !== -1) {
-                    const li = document.createElement("li");
-                    
-                    li.innerHTML = `
-                        <span>${usuario.nome}</span>
-                        <button onclick="prepararEdicao('${id}', '${usuario.nome}')">Editar</button>
-                        <button onclick="executarExcluir('${id}')" style="background-color: #ffcccc; border: 1px solid red;">Excluir</button>
-                    `;
-                    
-                    listaUl.appendChild(li);
-                }
+                document.getElementById("idNome").value = "";
+
+            }).catch((erro) => {
+
+                console.error(erro);
+
+                alert("Erro ao salvar: " + erro.message);
+
             });
+
         }
 
-        // 6. COLOCAR EM MODO DE EDIÇÃO
-        function prepararEdicao(id, nome) {
+        // DESENHAR TELA
+        function desenharTela(dados) {
+
+            let lista = document.getElementById("lista");
+
+            lista.innerHTML = "";
+
+            Object.keys(dados).forEach((id) => {
+
+                let usuario = dados[id];
+
+                let li = document.createElement("li");
+
+                li.appendChild(
+                    document.createTextNode(usuario.nome + " ")
+                );
+
+                let btnEditar = document.createElement("button");
+
+                btnEditar.textContent = "Editar";
+
+                btnEditar.onclick = () => editar(id);
+
+                let btnExcluir = document.createElement("button");
+
+                btnExcluir.textContent = "Excluir";
+
+                btnExcluir.onclick = () => deletar(id);
+
+                li.appendChild(btnEditar);
+
+                li.appendChild(btnExcluir);
+
+                lista.appendChild(li);
+
+            });
+
+        }
+
+        // EDITAR
+        function editar(id) {
+
+            document.getElementById("nome").value =
+                nomesLocais[id].nome;
+
             document.getElementById("idNome").value = id;
-            document.getElementById("nome").value = nome;
-            document.getElementById("nome").focus();
+
         }
 
-        // 7. EXCLUIR REGISTRO ÚNICO
-        function executarExcluir(id) {
-            if (confirm("Quer mesmo deletar este usuário?")) {
-                db.ref("usuarios").child(id).remove();
-            }
-        }
+        // EXCLUIR
+        function deletar(id) {
 
-        // 8. LIMPAR TODO O NÓ DO BANCO
-        function executarLimparTudo() {
-            if (confirm("CUIDADO: Apagar TODOS os registros salvos?")) {
-                db.ref("usuarios").remove()
-                    .then(function() {
-                        document.getElementById("pesquisa").value = "";
+            if (confirm("Deseja excluir este usuário?")) {
+
+                db.ref("usuarios/" + id).remove()
+                    .catch(erro => {
+                        alert("Erro ao excluir: " + erro.message);
                     });
+
             }
+
         }
+
+        // LIMPAR TUDO
+        function limparTudo() {
+
+            if (confirm("Deseja apagar todos os usuários?")) {
+
+                db.ref("usuarios").remove()
+                    .then(() => {
+
+                        document.getElementById("pesquisa").value = "";
+
+                    })
+                    .catch(erro => {
+
+                        alert("Erro ao limpar: " + erro.message);
+
+                    });
+
+            }
+
+        }
+
+        // PESQUISAR
+        function pesquisar() {
+
+            let termo = document.getElementById("pesquisa")
+                .value.toLowerCase();
+
+            let filtrados = {};
+
+            Object.keys(nomesLocais).forEach((id) => {
+
+                let nome = nomesLocais[id].nome || "";
+
+                if (nome.toLowerCase().includes(termo)) {
+
+                    filtrados[id] = nomesLocais[id];
+
+                }
+
+            });
+
+            desenharTela(filtrados);
+
+        }
+
     </script>
+
 </body>
 </html>
