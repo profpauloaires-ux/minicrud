@@ -44,9 +44,10 @@
             appId: "1:663844691248:web:532baca83ccb17860ebcf5"
         };
 
-        firebase.initializeApp(firebaseConfig);
+        //firebase.initializeApp(firebaseConfig);
+        const app = initializeApp(firebaseConfig);
 
-        const db = firebase.database();
+        //const db = firebase.database();
 
         let nomesLocais = {};
 
@@ -79,11 +80,16 @@
             let operacao;
 
             if (id === "") {
-            // Alinhando o push para retornar uma Promise tratável pelo .then()
-             operacao = db.ref("usuarios").push().set({ nome: nome });
+
+                operacao = db.ref("usuarios").push({
+                    nome: nome
+                });
+
             } else {
-                operacao = db.ref("usuarios/" + id).update({ nome: nome });
-            
+
+                operacao = db.ref("usuarios/" + id).update({
+                    nome: nome
+                });
 
             }
 
