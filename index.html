@@ -75,7 +75,7 @@
             const idValor = inputId.value;
 
             if (nomeValor === "") {
-                alert("Por favor, digite um nome, seu pateta!");
+                alert("Por favor, digite um nome!");
                 return;
             }
 
@@ -139,7 +139,7 @@
 
         // 7. EXCLUIR REGISTRO ÚNICO
         function executarExcluir(id) {
-            if (confirm("Quer mesmo deletar este usuário, Bizonho?")) {
+            if (confirm("Quer mesmo deletar este usuário?")) {
                 db.ref("usuarios").child(id).remove();
             }
         }
