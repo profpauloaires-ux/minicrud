@@ -2,37 +2,40 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>MINI CRUD PREMIUM EDITION - FIREBASE</title>
+    <title>MINI CRUD PREMIUM - FIREBASE</title>
 </head>
 <body>
 
     <h2>LISTA DE USUÁRIOS (NUVEM)</h2>
 
-    <!-- Campo invisível para saber se estamos editando (guarda a chave do Firebase) -->
     <input type="hidden" id="idNome">
 
-    <!-- Inputs do sistema -->
-    <input type="text" id="nome" placeholder="Digite o nome do usuário...">
+    <input type="text" id="nome"
+        placeholder="Digite o nome do usuário...">
+
     <button onclick="salvar()">Salvar</button>
+
     <br><br>
 
-    <!-- BARRA DE PESQUISA -->
-    <input type="text" id="pesquisa" placeholder="Pesquisar usuário..." oninput="pesquisar()">
+    <input type="text" id="pesquisa"
+        placeholder="Pesquisar usuário..."
+        oninput="pesquisar()">
 
-    <!-- BOTÃO LIMPAR TUDO -->
-    <button onclick="limparTudo()" style="background-color: lightcoral;">Limpar Tudo</button>
+    <button onclick="limparTudo()"
+        style="background-color: lightcoral;">
+        Limpar Tudo
+    </button>
 
-    <!-- Lista que vai aparecer na tela -->
     <ul id="lista"></ul>
 
-    <!-- 1. IMPORTANDO O FIREBASE (VERSÃO COMPATÍVEL COM ONCLICK E REF) -->
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
+    <!-- Firebase versão 8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-        // 2. CONFIGURAÇÃO DO SEU BANCO DE DADOS
+
         const firebaseConfig = {
-            apiKey: "AIzaSyCcEogcWrfRr0FLTNXPehLQa2-JT0_8WhM",
+            apiKey: "SUA_API_KEY",
             authDomain: "minicrud-1c0c9.firebaseapp.com",
             databaseURL: "https://minicrud-1c0c9-default-rtdb.firebaseio.com",
             projectId: "minicrud-1c0c9",
@@ -41,88 +44,179 @@
             appId: "1:663844691248:web:532baca83ccb17860ebcf5"
         };
 
-        // Inicializa o Firebase
         firebase.initializeApp(firebaseConfig);
+
         const db = firebase.database();
 
-        // Variável local para busca e filtros
         let nomesLocais = {};
 
-        // 3. PASSO DE LEITURA AUTOMÁTICA
+        // LEITURA AUTOMÁTICA
         db.ref("usuarios").on("value", (snapshot) => {
+
             nomesLocais = snapshot.val() || {};
-            desenharTela(nomesLocais);
+
+            pesquisar();
+
+        }, (erro) => {
+            console.error("Erro ao carregar dados:", erro);
+            alert("Erro ao carregar os usuários!");
         });
 
-        // PASSO 1 - CRIANDO OU ATUALIZANDO NO BANCO
+        // SALVAR
         function salvar() {
+
             let input = document.getElementById("nome");
+
             let id = document.getElementById("idNome").value;
 
-            if (input.value.trim() === "") return alert("Digite alguma coisa, seu bizonho!");
+            let nome = input.value.trim();
+
+            if (nome === "") {
+                alert("Digite um nome!");
+                return;
+            }
+
+            let operacao;
 
             if (id === "") {
-                // Criar novo registro
-                db.ref("usuarios").push({ nome: input.value });
+
+                operacao = db.ref("usuarios").push({
+                    nome: nome
+                });
+
             } else {
-                // Atualizar registro existente
-                db.ref("usuarios/" + id).update({ nome: input.value });
+
+                operacao = db.ref("usuarios/" + id).update({
+                    nome: nome
+                });
+
+            }
+
+            operacao.then(() => {
+
+                input.value = "";
+
                 document.getElementById("idNome").value = "";
-            }
-            input.value = "";
-        }
 
-        // PASSO 2 - EXIBINDO OS DADOS DO FIREBASE
-        function desenharTela(dadosExibir) {
-            let itemsHtml = "";
-            
-            Object.keys(dadosExibir).forEach((idUnico) => {
-                let usuario = dadosExibir[idUnico];
-                itemsHtml += `
-                    <li>
-                        ${usuario.nome} 
-                        <button onclick="editar('${idUnico}')">Editar</button>
-                        <button onclick="deletar('${idUnico}')">Excluir</button>
-                    </li>
-                `;
+            }).catch((erro) => {
+
+                console.error(erro);
+
+                alert("Erro ao salvar: " + erro.message);
+
             });
-            document.getElementById("lista").innerHTML = itemsHtml;
+
         }
 
-        // PASSO 3 - PREPARANDO A EDIÇÃO
-        function editar(idUnico) {
-            document.getElementById("nome").value = nomesLocais[idUnico].nome;
-            document.getElementById("idNome").value = idUnico;
+        // DESENHAR TELA
+        function desenharTela(dados) {
+
+            let lista = document.getElementById("lista");
+
+            lista.innerHTML = "";
+
+            Object.keys(dados).forEach((id) => {
+
+                let usuario = dados[id];
+
+                let li = document.createElement("li");
+
+                li.appendChild(
+                    document.createTextNode(usuario.nome + " ")
+                );
+
+                let btnEditar = document.createElement("button");
+
+                btnEditar.textContent = "Editar";
+
+                btnEditar.onclick = () => editar(id);
+
+                let btnExcluir = document.createElement("button");
+
+                btnExcluir.textContent = "Excluir";
+
+                btnExcluir.onclick = () => deletar(id);
+
+                li.appendChild(btnEditar);
+
+                li.appendChild(btnExcluir);
+
+                lista.appendChild(li);
+
+            });
+
         }
 
-        // PASSO 4 - DELETANDO DO BANCO ONLINE
-        function deletar(idUnico) {
-            if(confirm("Deseja mesmo excluir este usuário?")) {
-                db.ref("usuarios/" + idUnico).remove();
+        // EDITAR
+        function editar(id) {
+
+            document.getElementById("nome").value =
+                nomesLocais[id].nome;
+
+            document.getElementById("idNome").value = id;
+
+        }
+
+        // EXCLUIR
+        function deletar(id) {
+
+            if (confirm("Deseja excluir este usuário?")) {
+
+                db.ref("usuarios/" + id).remove()
+                    .catch(erro => {
+                        alert("Erro ao excluir: " + erro.message);
+                    });
+
             }
+
         }
 
-        // PASSO 5 - LIMPAR TODA A LISTA NA NUVEM
+        // LIMPAR TUDO
         function limparTudo() {
-            let resposta = confirm("Tem certeza que deseja apagar tudo do banco de dados, seu bizonho?");
-            if (resposta === true) {
-                db.ref("usuarios").remove();
-                document.getElementById("pesquisa").value = "";
+
+            if (confirm("Deseja apagar todos os usuários?")) {
+
+                db.ref("usuarios").remove()
+                    .then(() => {
+
+                        document.getElementById("pesquisa").value = "";
+
+                    })
+                    .catch(erro => {
+
+                        alert("Erro ao limpar: " + erro.message);
+
+                    });
+
             }
+
         }
 
-        // PASSO 6 - PESQUISAR REGISTROS
+        // PESQUISAR
         function pesquisar() {
-            let termo = document.getElementById("pesquisa").value.toLowerCase();
+
+            let termo = document.getElementById("pesquisa")
+                .value.toLowerCase();
+
             let filtrados = {};
 
-            Object.keys(nomesLocais).forEach((idUnico) => {
-                if (nomesLocais[idUnico].nome.toLowerCase().includes(termo)) {
-                    filtrados[idUnico] = nomesLocais[idUnico];
+            Object.keys(nomesLocais).forEach((id) => {
+
+                let nome = nomesLocais[id].nome || "";
+
+                if (nome.toLowerCase().includes(termo)) {
+
+                    filtrados[id] = nomesLocais[id];
+
                 }
+
             });
+
             desenharTela(filtrados);
+
         }
+
     </script>
+
 </body>
 </html>
