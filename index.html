@@ -79,16 +79,11 @@
             let operacao;
 
             if (id === "") {
-
-                operacao = db.ref("usuarios").push({
-                    nome: nome
-                });
-
+            // Alinhando o push para retornar uma Promise tratável pelo .then()
+             operacao = db.ref("usuarios").push().set({ nome: nome });
             } else {
-
-                operacao = db.ref("usuarios/" + id).update({
-                    nome: nome
-                });
+                operacao = db.ref("usuarios/" + id).update({ nome: nome });
+            
 
             }
 
