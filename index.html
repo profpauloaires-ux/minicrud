@@ -10,19 +10,15 @@
 
     <input type="hidden" id="idNome">
 
-    <input type="text" id="nome"
-        placeholder="Digite o nome do usuário...">
+    <input type="text" id="nome" placeholder="Digite o nome do usuário...">
 
     <button onclick="salvar()">Salvar</button>
 
     <br><br>
 
-    <input type="text" id="pesquisa"
-        placeholder="Pesquisar usuário..."
-        oninput="pesquisar()">
+    <input type="text" id="pesquisa" placeholder="Pesquisar usuário..." oninput="pesquisar()">
 
-    <button onclick="limparTudo()"
-        style="background-color: lightcoral;">
+    <button onclick="limparTudo()" style="background-color: lightcoral;">
         Limpar Tudo
     </button>
 
@@ -33,7 +29,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-
         const firebaseConfig = {
             apiKey: "AIzaSyCcEogcWrfRr0FLTNXPehLQa2-JT0_8WhM",
             authDomain: "minicrud-1c0c9.firebaseapp.com",
@@ -44,20 +39,16 @@
             appId: "1:663844691248:web:532baca83ccb17860ebcf5"
         };
 
-        //firebase.initializeApp(firebaseConfig);
-        const app = initializeApp(firebaseConfig);
-
-        //const db = firebase.database();
+        // Inicialização correta para a versão 8
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
         let nomesLocais = {};
 
         // LEITURA AUTOMÁTICA
         db.ref("usuarios").on("value", (snapshot) => {
-
             nomesLocais = snapshot.val() || {};
-
             pesquisar();
-
         }, (erro) => {
             console.error("Erro ao carregar dados:", erro);
             alert("Erro ao carregar os usuários!");
@@ -65,159 +56,63 @@
 
         // SALVAR
         function salvar() {
-
             let input = document.getElementById("nome");
+            let idInput = document.getElementById("idNome");
+            let nomeValor = input.value.trim();
 
-            let id = document.getElementById("idNome").value;
-
-            let nome = input.value.trim();
-
-            if (nome === "") {
-                alert("Digite um nome!");
+            if (nomeValor === "") {
+                alert("Digite um nome válido!");
                 return;
             }
 
-            let operacao;
-
-            if (id === "") {
-
-                operacao = db.ref("usuarios").push({
-                    nome: nome
-                });
-
+            // Se tiver idNome preenchido, atualiza. Se não, cria um novo (push)
+            if (idInput.value) {
+                db.ref("usuarios/" + idInput.value).set({ nome: nomeValor });
             } else {
-
-                operacao = db.ref("usuarios/" + id).update({
-                    nome: nome
-                });
-
+                db.ref("usuarios").push({ nome: nomeValor });
             }
 
-            operacao.then(() => {
-
-                input.value = "";
-
-                document.getElementById("idNome").value = "";
-
-            }).catch((erro) => {
-
-                console.error(erro);
-
-                alert("Erro ao salvar: " + erro.message);
-
-            });
-
+            input.value = "";
+            idInput.value = "";
         }
 
-        // DESENHAR TELA
-        function desenharTela(dados) {
-
+        // PESQUISAR / LISTAR
+        function pesquisar() {
+            let termo = document.getElementById("pesquisa").value.toLowerCase();
             let lista = document.getElementById("lista");
-
             lista.innerHTML = "";
 
-            Object.keys(dados).forEach((id) => {
-
-                let usuario = dados[id];
-
-                let li = document.createElement("li");
-
-                li.appendChild(
-                    document.createTextNode(usuario.nome + " ")
-                );
-
-                let btnEditar = document.createElement("button");
-
-                btnEditar.textContent = "Editar";
-
-                btnEditar.onclick = () => editar(id);
-
-                let btnExcluir = document.createElement("button");
-
-                btnExcluir.textContent = "Excluir";
-
-                btnExcluir.onclick = () => deletar(id);
-
-                li.appendChild(btnEditar);
-
-                li.appendChild(btnExcluir);
-
-                lista.appendChild(li);
-
-            });
-
+            for (let id in nomesLocais) {
+                let usuario = nomesLocais[id];
+                if (usuario.nome.toLowerCase().includes(termo)) {
+                    let li = document.createElement("li");
+                    li.innerHTML = `${usuario.nome} 
+                        <button onclick="editar('${id}', '${usuario.nome}')">Editar</button>
+                        <button onclick="remover('${id}')">Excluir</button>`;
+                    lista.appendChild(li);
+                }
+            }
         }
 
         // EDITAR
-        function editar(id) {
-
-            document.getElementById("nome").value =
-                nomesLocais[id].nome;
-
+        function editar(id, nome) {
             document.getElementById("idNome").value = id;
-
+            document.getElementById("nome").value = nome;
         }
 
-        // EXCLUIR
-        function deletar(id) {
-
-            if (confirm("Deseja excluir este usuário?")) {
-
-                db.ref("usuarios/" + id).remove()
-                    .catch(erro => {
-                        alert("Erro ao excluir: " + erro.message);
-                    });
-
+        // REMOVER
+        function remover(id) {
+            if (confirm("Deseja realmente excluir este usuário?")) {
+                db.ref("usuarios/" + id).remove();
             }
-
         }
 
         // LIMPAR TUDO
         function limparTudo() {
-
-            if (confirm("Deseja apagar todos os usuários?")) {
-
-                db.ref("usuarios").remove()
-                    .then(() => {
-
-                        document.getElementById("pesquisa").value = "";
-
-                    })
-                    .catch(erro => {
-
-                        alert("Erro ao limpar: " + erro.message);
-
-                    });
-
+            if (confirm("Tem certeza que deseja apagar TODOS os usuários da nuvem?")) {
+                db.ref("usuarios").remove();
             }
-
         }
-
-        // PESQUISAR
-        function pesquisar() {
-
-            let termo = document.getElementById("pesquisa")
-                .value.toLowerCase();
-
-            let filtrados = {};
-
-            Object.keys(nomesLocais).forEach((id) => {
-
-                let nome = nomesLocais[id].nome || "";
-
-                if (nome.toLowerCase().includes(termo)) {
-
-                    filtrados[id] = nomesLocais[id];
-
-                }
-
-            });
-
-            desenharTela(filtrados);
-
-        }
-
     </script>
-
 </body>
 </html>
